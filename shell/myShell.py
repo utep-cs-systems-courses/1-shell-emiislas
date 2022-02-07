@@ -1,22 +1,5 @@
 import os, sys, re
 
-pipe()
-
-#fork()
-
-dup()
-
-#execve()
-
-#wait()
-
-open()
-
-close()
-
-chdir()
-
-
 
 def execute():
     pid = os.getpid()
@@ -46,7 +29,17 @@ def execute():
 	
         os.write(1, ("I am parent. My pid=%d. Child's pid=%d\n" % (pid, rc)).encode())
         childPidCode = os.wait()
-        os.write(1, "Parent: Child %d termiinated with exit code %d\n" % childPiidCode).encode())
+        os.write(1, "Parent: Child %d termiinated with exit code %d\n" % childPidCode).encode())
+
+def chdir():
+
+    dest = input("Input Destination")
+    try:
+        os.chdir(dest)
+    except FileNotFoundError:
+        os.write(1, ("Invalid Destination %d\n").encode())
+
+
 
 def main():
     
@@ -55,7 +48,7 @@ def main():
         if (command == "exit"):
             sys.exit(0)
         elif(command == "cd"):
-            cd_instruction()
+            chdir()
 
         else:
             print("Instruction not found")
