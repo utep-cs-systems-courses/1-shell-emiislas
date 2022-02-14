@@ -1,9 +1,10 @@
 import os, sys, re
 
 
+
 def execute():
     pid = os.getpid()
-    os.write(1, ("about to fork(pid:%d)\n" % pid).encode))
+    os.write(1, ("about to fork(pid:%d)\n" % pid).encode())
     rc = os.fork()
 
     if (rc < 0): #fail
@@ -21,25 +22,31 @@ def execute():
             except FileNotFoundError:
                 pass
 
-	time.sleep(1)
+	
         os.write(1, "Child: could not exec 0\n".encode())
-	sys.exit(0)
+        sys.exit(0)
 
     else: #parent forked
 	
         os.write(1, ("I am parent. My pid=%d. Child's pid=%d\n" % (pid, rc)).encode())
         childPidCode = os.wait()
-        os.write(1, "Parent: Child %d termiinated with exit code %d\n" % childPidCode).encode())
+        os.write(1, ("Parent: Child %d terminated with exit code %d\n" % childPidCode).encode())
 
 def chdir():
 
-    dest = input("Input Destination")
+    dest = input("/")
     try:
         os.chdir(dest)
     except FileNotFoundError:
         os.write(1, ("Invalid Destination %d\n").encode())
 
 
+def listdr():
+    try:
+        dct = os.listdir()
+        print(dct)
+    except FileNotFoundError:
+        os.write(1, ("List not found %d\n").encode())
 
 def main():
     
@@ -50,10 +57,15 @@ def main():
         elif(command == "cd"):
             chdir()
 
+        elif(command == "ls"):
+            listdr()
+
         else:
-            print("Instruction not found")
+            #fork
+            execute()
 
             
+main()
 
 
 
