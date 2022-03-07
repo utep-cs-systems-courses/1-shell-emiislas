@@ -44,10 +44,10 @@ def pipe(cmd):
         for i in (pr, pw): #i is fd
             os.close(i)
 
-        leftcmd = cmd[0:cmd.index("|")] # save left command
+        leftcmd = cmd[:cmd.index("|")] # save left command
         executeHelper(leftcmd)
-       # os.write(2, ("%s: Command not found\n" %cmd[0]).encode())        
-       # sys.exit(1)
+        os.write(2, ("%s: Command not found\n" %cmd[0]).encode())        
+        sys.exit(1)
 
     elif rcp > 0:
         os.close(0) #parent close fd
@@ -59,7 +59,8 @@ def pipe(cmd):
 
         rightcmd = cmd[cmd.index("|")+1:] #right command
         executeHelper(rightcmd)
-        #os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
+        os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
+        sys.exit(1)
 
 def redir(cmd):
     os.close(1)
