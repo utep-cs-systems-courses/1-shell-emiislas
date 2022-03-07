@@ -1,6 +1,16 @@
 import os, sys, time, re
 
+def executeHelper(cmd):
+    for dir in re.split(":", os.environ['PATH']):
+            program = "%s/%s" % (dir, cmd[0])
+           # os.write(1, ("Child: trying to exec %s\n" % program).encode())
+            try:
+                os.execve(program, cmd, os.environ)
+            except FileNotFoundError:
+                pass
 
+    os.write(1, "Child: could not exec 0\n".encode())
+    sys.exit(0)
 
 def execute(cmd):#Executes commands through execve
     pid = os.getpid() #gets pid to keep track
@@ -11,19 +21,9 @@ def execute(cmd):#Executes commands through execve
         sys.exit(1)
 
     if (rc == 0): #child
-        # os.write(1, ("I am child. My pid==%d. Parent's pid=%d\n" % (os.getpid(), pid)).encode())
- 
-        for dir in re.split(":", os.environ['PATH']):
-            program = "%s/%s" % (dir, cmd[0])
-           # os.write(1, ("Child: trying to exec %s\n" % program).encode())
-            try:
-                os.execve(program, cmd, os.environ)
-            except FileNotFoundError:
-                pass
-
-
-        os.write(1, "Child: could not exec 0\n".encode())
-        sys.exit(0)
+       # os.write(1, ("I am child. My pid==%d. Parent's pid=%d\n" % (os.getpid(), pid)).encode())
+       executeHelper(cmd)
+        
 
     else: #parent forked
 	
@@ -45,9 +45,9 @@ def pipe(cmd):
             os.close(i)
 
         leftcmd = cmd[0:cmd.index("|")] # save left command
-        execute(leftcmd)
-        os.write(2, ("%s: Command not found\n" %cmd[0]).encode())        
-        sys.exit(1)
+        executeHelper(leftcmd)
+       # os.write(2, ("%s: Command not found\n" %cmd[0]).encode())        
+       # sys.exit(1)
 
     elif rcp > 0:
         os.close(0) #parent close fd
@@ -58,8 +58,8 @@ def pipe(cmd):
             os.close(i)
 
         rightcmd = cmd[cmd.index("|")+1:] #right command
-        execute(rightcmd)
-        os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
+        executeHelper(rightcmd)
+        #os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
 
 def redir(cmd):
     os.close(1)
