@@ -1,72 +1,105 @@
-import os, sys, re
+import os, sys, time, re
 
 
 
-def execute():
-    pid = os.getpid()
-    os.write(1, ("about to fork(pid:%d)\n" % pid).encode())
-    rc = os.fork()
-
-    if (rc < 0): #fail
+def execute(cmd):#Executes commands through execve
+    pid = os.getpid() #gets pid to keep track
+    rc = os.fork() #forks
+  
+    if (rc < 0): #if fork fails
         os.write(2, ("fork failed, returning %d\n" % rc).encode())
         sys.exit(1)
 
-    elif (rc == 0): #child
-        os.write(1, ("I am child. My pid==%d. Parent's pid=%d\n" % (os.getpid(), pid)).encode())
-        args = ["wc", "p3-exec.py"]
+    if (rc == 0): #child
+        # os.write(1, ("I am child. My pid==%d. Parent's pid=%d\n" % (os.getpid(), pid)).encode())
+ 
         for dir in re.split(":", os.environ['PATH']):
-            program = "%s%s" % (dir, args[0])
-            os.write(1, ("Child: tryinng to exec %s\n" % program).encode())
+            program = "%s/%s" % (dir, cmd[0])
+           # os.write(1, ("Child: trying to exec %s\n" % program).encode())
             try:
-                os.execve(program, args, os.environ)
+                os.execve(program, cmd, os.environ)
             except FileNotFoundError:
                 pass
 
-	
+
         os.write(1, "Child: could not exec 0\n".encode())
         sys.exit(0)
 
     else: #parent forked
 	
-        os.write(1, ("I am parent. My pid=%d. Child's pid=%d\n" % (pid, rc)).encode())
-        childPidCode = os.wait()
-        os.write(1, ("Parent: Child %d terminated with exit code %d\n" % childPidCode).encode())
+       # os.write(1, ("I am parent. My pid=%d. Child's pid=%d\n" % (pid, rc)).encode())
+       childPidCode = os.wait()#waiting for child
+       # os.write(1, ("Parent: Child %d terminated with exit code %d\n" % childPidCode).encode())
 
-def chdir():
+def pipe(cmd):
+    pr, pw = os.pipe()
+    rcp = os.fork()
+    if rcp < 0:
+        sys.exit(1)
+    if rcp == 0:
+        os.close(1) #close fd output
+        os.dup(pw) #dup of fd
+        os.set_inheritable(1, True) 
 
-    dest = input("/")
+        for i in (pr, pw): #i is fd
+            os.close(i)
+
+        leftcmd = cmd[0:cmd.index("|")] # save left command
+        execute(leftcmd)
+        os.write(2, ("%s: Command not found\n" %cmd[0]).encode())        
+        sys.exit(1)
+
+    elif rcp > 0:
+        os.close(0) #parent close fd
+        os.dup(pr) 
+        os.set_inheritable(0, True)
+	
+        for i in (pr, pw):
+            os.close(i)
+
+        rightcmd = cmd[cmd.index("|")+1:] #right command
+        execute(rightcmd)
+        os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
+
+def redir(cmd):
+    os.close(1)
+    os.open(cmd, os.O_CREAT | os.O_WRONLY);
+    os.set_inheritable(1, True)    
+
+def chdir(path):
+
     try:
-        os.chdir(dest)
+        os.chdir(path)
     except FileNotFoundError:
         os.write(1, ("Invalid Destination %d\n").encode())
 
 
-def listdr():
-    try:
-        dct = os.listdir()
-        print(dct)
-    except FileNotFoundError:
-        os.write(1, ("List not found %d\n").encode())
 
 def main():
-    
+ 
     while (True):
-        command = input("$")
-        if (command == "exit"):
+        current = os.getcwd()
+        command = input(current + "$ ")
+        cmd = command.split(' ')
+        if (cmd[0] == "exit"):
             sys.exit(0)
-        elif(command == "cd"):
-            chdir()
 
-        elif(command == "ls"):
-            listdr()
+        elif(cmd[0] == "cd"):
+            chdir(cmd[1])
+
+        elif ('|' in cmd):
+            pipe(cmd)
+
+        elif('>' in cmd):
+            redir(cmd[cmd.index(">")+1])
 
         else:
-            #fork
-            execute()
+            #execute any other command
+            execute(cmd)
 
             
-main()
 
+main()
 
 
 
