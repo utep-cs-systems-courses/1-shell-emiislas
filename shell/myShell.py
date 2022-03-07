@@ -46,8 +46,8 @@ def pipe(cmd):
 
         leftcmd = cmd[:cmd.index("|")] # save left command
         executeHelper(leftcmd)
-        os.write(2, ("%s: Command not found\n" %cmd[0]).encode())        
-        sys.exit(1)
+        #os.write(2, ("%s: Command not found\n" %cmd[0]).encode())        
+        #sys.exit(1)
 
     elif rcp > 0:
         os.close(0) #parent close fd
@@ -59,13 +59,18 @@ def pipe(cmd):
 
         rightcmd = cmd[cmd.index("|")+1:] #right command
         executeHelper(rightcmd)
-        os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
-        sys.exit(1)
+        #os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
+        #sys.exit(1)
+        childPidCode = os.wait()
 
 def redir(cmd):
     os.close(1)
-    os.open(cmd, os.O_CREAT | os.O_WRONLY);
-    os.set_inheritable(1, True)    
+    os.open(cmd[cmd.index('>')+1], os.O_CREAT | os.O_WRONLY); #create file or open
+    os.set_inheritable(1, True)
+    cmd.remove(cmd[cmd.index('>')+1])
+    cmd.remove('>')
+    executeHelper(cmd)
+
 
 def chdir(path):
 
@@ -92,7 +97,7 @@ def main():
             pipe(cmd)
 
         elif('>' in cmd):
-            redir(cmd[cmd.index(">")+1])
+            redir(cmd)
 
         else:
             #execute any other command
