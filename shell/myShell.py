@@ -32,12 +32,12 @@ def execute(cmd):#Executes commands through execve
        # os.write(1, ("Parent: Child %d terminated with exit code %d\n" % childPidCode).encode())
 
 def pipe(cmd):
-    pr, pw = os.pipe()
+    pr, pw = os.pipe() # pipe read and pipe write
     rcp = os.fork()
     if rcp < 0:
         sys.exit(1)
     if rcp == 0:
-        os.close(1) #close fd output
+        os.close(1) #close fd output (redirect)
         os.dup(pw) #dup of fd
         os.set_inheritable(1, True) 
 
@@ -50,18 +50,28 @@ def pipe(cmd):
         #sys.exit(1)
 
     elif rcp > 0:
-        os.close(0) #parent close fd
-        os.dup(pr) 
-        os.set_inheritable(0, True)
+        #fork another process (execute in child only)
+        #pr, pw = os.pipe() # pipe read and pipe write
+        rcp = os.fork()
+        if rcp < 0:
+            sys.exit(1)
+        if rcp == 0:
+            os.close(0) #parent close fd
+            os.dup(pr) 
+            os.set_inheritable(0, True)
 	
-        for i in (pr, pw):
-            os.close(i)
+            for i in (pr, pw):
+               os.close(i)
 
-        rightcmd = cmd[cmd.index("|")+1:] #right command
-        executeHelper(rightcmd)
-        #os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
-        #sys.exit(1)
-        childPidCode = os.wait()
+            rightcmd = cmd[cmd.index("|")+1:] #right command
+            executeHelper(rightcmd)
+	        #os.write(2, ("%s: Command not found\n" %cmd[0]).encode())
+	        #sys.exit(1)
+            
+        elif rcp > 0:
+           childPidCode = os.wait()
+     
+
 
 def redir(cmd):
     os.close(1)
